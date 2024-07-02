@@ -81,6 +81,61 @@ class FlashAttention(torch.nn.Module):
         out = self.out(context)
         return out
 
+import torch
+import torch.nn.functional as F
+
+class FlashAttentionWin(torch.nn.Module):
+    def __init__(self, d_model, n_heads, chunk_size, stride):
+        super(FlashAttentionWin, self).__init__()
+        self.d_model = d_model
+        self.n_heads = n_heads
+        self.chunk_size = chunk_size
+        self.stride = stride
+        
+        self.query = torch.nn.Linear(d_model, d_model)
+        self.key = torch.nn.Linear(d_model, d_model)
+        self.value = torch.nn.Linear(d_model, d_model)
+        self.out = torch.nn.Linear(d_model, d_model)
+
+    def forward(self, x):
+        B, N, D = x.shape
+        C = self.chunk_size
+        S = self.stride
+
+        Q = self.query(x)
+        K = self.key(x)
+        V = self.value(x)
+        
+        Q = Q.view(B, N, self.n_heads, D // self.n_heads).transpose(1, 2)
+        K = K.view(B, N, self.n_heads, D // self.n_heads).transpose(1, 2)
+        V = V.view(B, N, self.n_heads, D // self.n_heads).transpose(1, 2)
+        
+        output_chunks = []
+        for i in range(0, N, S):
+            Q_chunk = Q[:, :, i:i+C]
+            K_chunk = K[:, :, max(0, i-S):min(N, i+C+S)]
+            V_chunk = V[:, :, max(0, i-S):min(N, i+C+S)]
+            
+            if Q_chunk.shape[2] == 0 or K_chunk.shape[2] == 0 or V_chunk.shape[2] == 0:
+                continue
+            
+            scores = torch.matmul(Q_chunk, K_chunk.transpose(-2, -1)) / (D ** 0.5)
+            attention_weights = F.softmax(scores, dim=-1)
+            context = torch.matmul(attention_weights, V_chunk)
+            
+            output_chunks.append(context)
+        
+        # Concatenate along the sequence length dimension
+        context = torch.cat(output_chunks, dim=2)
+        
+        # Make sure the concatenated context is the same size as the input sequence length
+        context = context[:, :, :N]
+        context = context.transpose(1, 2).contiguous().view(B, N, D)
+        
+        out = self.out(context)
+        return out
+
+
 # Example usage, O(N^2) vs O(N)
 '''
 简易版本的 attention 和 flash attention 的对比
@@ -93,15 +148,21 @@ class FlashAttention(torch.nn.Module):
 3.	计算效率：
     •	Flash Attention 通过并行计算块内的注意力，可以更好地利用硬件资源，计算效率更高。
 '''
-x = torch.rand(2, 10000, 64)  # Batch size 2, sequence length 10, model dimension 64
+x = torch.rand(2, 5000, 64)  # Batch size 2, sequence length 10, model dimension 64
 self_attention = SelfAttention(d_model=64, n_heads=8)
 t_start = time.time()
 output = self_attention(x)
 t_end = time.time()
-print(f"normal attention cost time:{(t_end-t_start):.4f}", output.shape, )  # Output shape: (2, 10, 64)
+print(f"normal attention cost time:{(t_end-t_start):.4f}", output.shape, )
 
 flash_attention = FlashAttention(d_model=64, n_heads=8, chunk_size=4)
 t_start = time.time()
 output = flash_attention(x)
 t_end = time.time()
-print(f"flash attention cost time:{(t_end-t_start):.4f}", output.shape, )  # Output shape: (2, 10, 64)
+print(f"flash attention cost time:{(t_end-t_start):.4f}", output.shape, ) 
+
+flash_attention_win = FlashAttentionWin(d_model=64, n_heads=8, chunk_size=256, stride=128)
+t_start = time.time()
+output = flash_attention_win(x)
+t_end = time.time()
+print(f"flash attention win cost time:{(t_end-t_start):.4f}", output.shape,)
