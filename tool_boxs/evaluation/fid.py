@@ -3,20 +3,6 @@ import torch
 from pytorch_fid.inception import InceptionV3
 import os
 import numpy as np
-def calculate_fid_stats(paths, batch_size, device, dims, num_workers=1):
-    """Calculates the FID of two paths"""
-
-    block_idx = InceptionV3.BLOCK_INDEX_BY_DIM[dims]
-
-    model = InceptionV3([block_idx]).to(device)
-
-    m1, s1 = fid_score.compute_statistics_of_path(paths[0], model, batch_size,
-                                        dims, device, num_workers)
-    m2, s2 = fid_score.compute_statistics_of_path(paths[1], model, batch_size,
-                                        dims, device, num_workers)
-    fid_value = fid_score.calculate_frechet_distance(m1, s1, m2, s2)
-
-    return fid_value
 
 def calculate_fid(path1,path2,batchsize=1,save_status=True):
     device = torch.device('cuda' if (torch.cuda.is_available()) else 'cpu')
