@@ -48,13 +48,13 @@ if __name__ == '__main__':
         bar.update(1)
         bar.set_description(f"Processing {sr_name}, {hr_name}")
         crop_border = 4
-        # 对于 y_channel_test，使用 bgr2y_channel
+        # 在 rgb 通道计算，输入 bgr 或者 rgb 都可以，结果一致
         psnr_rgb = calculate_psnr(sr, hr,crop_border=crop_border,test_y_channel=False) 
         ssim_rgb = calculate_ssim(sr, hr,crop_border=crop_border,test_y_channel=False)
         psnr_rgb_list.append(psnr_rgb)
         ssim_rgb_list.append(ssim_rgb)
         
-        # 在 rgb 通道计算，输入 bgr 或者 rgb 都可以，结果一致
+        # 对于 y_channel_test，使用 bgr2y_channel
         psnr_y = calculate_psnr(sr, hr,crop_border=crop_border,test_y_channel=True)
         ssim_y = calculate_ssim(sr, hr,crop_border=crop_border,test_y_channel=True)
         psnr_y_list.append(psnr_y)
