@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+*.DS_Store
 # C extensions
 *.so
 
@@ -163,4 +164,7 @@ cython_debug/
 *.png
 *.jpeg
 *.csv
-.vscode/*
+*.npz
+!tool_boxs/evaluation/niqe_pris_params.npz
+!tool_boxs/asserts/Set5/SR_x4
+!tool_boxs/asserts/Set5/HR
