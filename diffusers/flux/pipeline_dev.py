@@ -2,7 +2,7 @@ import torch
 from diffusers import FluxPipeline
 import os
 # huggingface-cli download --token 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 --resume-download black-forest-labs/FLUX.1-dev --local-dir FLUX.1-dev
-pipe = FluxPipeline.from_pretrained("~/models/FLUX.1-dev", torch_dtype=torch.bfloat16)
+pipe = FluxPipeline.from_pretrained("/mnt/hwdata/cv/users/zhangjinyang/models/FLUX.1-dev", torch_dtype=torch.bfloat16)
 pipe.enable_model_cpu_offload()
 
 prompt = "a tiny astronaut hatching from an egg on the moon"
